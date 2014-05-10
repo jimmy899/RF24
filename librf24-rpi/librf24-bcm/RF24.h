@@ -86,6 +86,7 @@ protected:
    * @param len How many bytes of data to transfer
    * @return Current value of status register
    */
+public:
   uint8_t read_register(uint8_t reg, uint8_t* buf, uint8_t len);
 
   /**
@@ -150,6 +151,7 @@ protected:
    * @return Current value of status register
    */
   uint8_t flush_tx(void);
+protected:
 
   /**
    * Retrieve the current status of the chip
@@ -630,6 +632,28 @@ public:
    * @return true if signal => -64dBm, false if not
    */
   bool testRPD(void) ;
+  int rxFlag(void);
+  int resetRxFlag(void);
+  int txFlag(void);
+  void resetTxFlag(void);
+
+  bool rxEmpty();
+  void switchFreq(uint8_t freq);
+
+  void setCeHigh(void);
+  void setCeLow(void);
+
+  void setCsHigh(void);
+  void setCsLow(void);
+
+  uint8_t readPayload(void* buf, uint8_t len);
+  uint8_t flushRx(void);
+  uint8_t flushTx(void);
+
+  void init(uint8_t payloadSize);
+   
+  uint8_t rxMode(uint8_t initFreq);
+  uint8_t txMode(uint8_t initFreq);
 
   /**@}*/
 };

@@ -1085,4 +1085,142 @@ void RF24::setRetries(uint8_t delay, uint8_t count)
  write_register(SETUP_RETR,(delay&0xf)<<ARD | (count&0xf)<<ARC);
 }
 
+int RF24::txFlag(void)
+{
+  return read_register(STATUS) & _BV(TX_DS);
+}
+
+void RF24::resetTxFlag(void)
+{
+  write_register(STATUS, _BV(TX_DS));
+}
+
+int RF24::rxFlag(void)
+{
+  return read_register(STATUS) & _BV(RX_DR) ;
+}
+
+int RF24::resetRxFlag(void)
+{
+  write_register(STATUS,_BV(RX_DR));
+}
+
+bool RF24::rxEmpty()
+{
+  return (read_register(FIFO_STATUS) & _BV(RX_EMPTY));
+}
+
+void RF24::switchFreq(uint8_t freq)
+{
+  // printf("%s:%d switch ch: %d\n", __FILE__, __LINE__, freq);
+  write_register(RF_CH, freq);
+}
+
+void RF24::setCeHigh(void)
+{
+  bcm2835_gpio_write(ce_pin, HIGH);
+}
+
+void RF24::setCeLow(void)
+{
+  bcm2835_gpio_write(ce_pin, LOW);
+}
+
+void RF24::setCsHigh(void)
+{
+  bcm2835_gpio_write(csn_pin, HIGH);
+}
+
+void RF24::setCsLow(void)
+{
+  bcm2835_gpio_write(csn_pin, LOW);
+}
+
+uint8_t RF24::readPayload(void* buf, uint8_t len)
+{
+  return read_payload(buf, len);
+}
+
+uint8_t RF24::flushRx(void)
+{
+  return flush_rx();
+}
+
+uint8_t RF24::flushTx(void)
+{
+  return flush_tx();
+}
+
+void RF24::init(uint8_t payloadSize)
+{
+  begin();
+  setPayloadSize(payloadSize);
+}
+
+uint8_t RF24::rxMode(uint8_t initialFreq)
+{
+  setCeLow();
+  write_register(CONFIG, _BV(EN_CRC) | _BV(CRCO));       // Enable CRC (2bytes)
+  delayMicroseconds(100);
+  write_register(EN_AA, 0x00);           // Disable auto acknowledgment
+  write_register(EN_RXADDR, 0x01);       // Enable all data pipe (PO to P5)
+  write_register(SETUP_AW, 0x03);        // 5 bytes address
+  write_register(SETUP_RETR, 0xFF);      // 15 retransmit, 4000us pause
+  write_register(RF_CH, initialFreq);    // channel 8
+  write_register(RF_SETUP, 0x05);        // 1Mbps, -6dBm power (0x06 => 1Mbps, 0dBm)
+  write_register(STATUS, 0x70);          // Clear status register
+  write_register(RX_PW_P0, 0x10);        // RX payload of 16 bytes
+  write_register(FIFO_STATUS, 0x00);     // Nothing useful for write command
+  const uint8_t* rx_tx_addr = reinterpret_cast<const uint8_t *>("\x66\x88\x68\x68\x68");
+  write_register(RX_ADDR_P0, rx_tx_addr, 5);
+  delay(50);
+  flushTx();
+  flushRx();
+  delayMicroseconds(100);
+  write_register(CONFIG, _BV(EN_CRC) | _BV(CRCO) | _BV(PWR_UP)  );
+  delayMicroseconds(100);
+  write_register(CONFIG, _BV(EN_CRC) | _BV(CRCO) | _BV(PWR_UP) | _BV(PRIM_RX) );
+  delayMicroseconds(100);
+  setCeHigh();
+  delayMicroseconds(102);
+}
+
+uint8_t RF24::txMode(uint8_t initialFreq)
+{
+  setCeLow();
+  write_register(CONFIG, _BV(EN_CRC) | _BV(CRCO));       // Enable CRC (2bytes)
+  delayMicroseconds(100);
+  write_register(EN_AA, 0x00);           // Disable auto acknowledgment
+  write_register(EN_RXADDR, 0x3f);       // Enable all data pipe (PO to P5)
+  write_register(SETUP_AW, 0x03);        // 5 bytes address
+  write_register(SETUP_RETR, 0xFF);      // 15 retransmit, 4000us pause
+  write_register(RF_CH, initialFreq);    // channel 8
+  write_register(RF_SETUP, 0x05);        // 1Mbps, -6dBm power (0x06 => 1Mbps, 0dBm)
+  write_register(STATUS, 0x70);          // Clear status register
+  write_register(OBSERVE_TX, 0x00);
+  write_register(RX_ADDR_P2, 0xC3);        // RX payload of 16 bytes
+  write_register(RX_ADDR_P3, 0xC4);        // RX payload of 16 bytes
+  write_register(RX_ADDR_P4, 0xC5);        // RX payload of 16 bytes
+  write_register(RX_ADDR_P5, 0xC6);        // RX payload of 16 bytes
+  write_register(RX_PW_P0, 0x10);        // RX payload of 16 bytes
+  write_register(RX_PW_P1, 0x10);        // RX payload of 16 bytes
+  write_register(RX_PW_P2, 0x10);        // RX payload of 16 bytes
+  write_register(RX_PW_P3, 0x10);        // RX payload of 16 bytes
+  write_register(RX_PW_P4, 0x10);        // RX payload of 16 bytes
+  write_register(RX_PW_P5, 0x10);        // RX payload of 16 bytes
+  write_register(FIFO_STATUS, 0x00);     // Nothing useful for write command
+  const uint8_t* rx_tx_addr = reinterpret_cast<const uint8_t *>("\x66\x88\x68\x68\x68");
+  const uint8_t* rx_p1_addr = reinterpret_cast<const uint8_t *>("\x88\x66\x86\x86\x86");
+  write_register(RX_ADDR_P0, rx_tx_addr, 5);
+  write_register(RX_ADDR_P1, rx_p1_addr, 5);
+  write_register(TX_ADDR, rx_tx_addr, 5);
+  delay(50);
+  flushTx();
+  flushRx();
+  delayMicroseconds(100);
+  write_register(CONFIG, _BV(EN_CRC) | _BV(CRCO) | _BV(PWR_UP)  );
+  delayMicroseconds(100);
+  setCeHigh();
+  delayMicroseconds(102);
+}
 
