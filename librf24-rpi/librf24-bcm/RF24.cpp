@@ -1100,7 +1100,7 @@ int RF24::rxFlag(void)
   return read_register(STATUS) & _BV(RX_DR) ;
 }
 
-int RF24::resetRxFlag(void)
+void RF24::resetRxFlag(void)
 {
   write_register(STATUS,_BV(RX_DR));
 }
@@ -1183,6 +1183,7 @@ uint8_t RF24::rxMode(uint8_t initialFreq)
   delayMicroseconds(100);
   setCeHigh();
   delayMicroseconds(102);
+  return 0;
 }
 
 uint8_t RF24::txMode(uint8_t initialFreq)
@@ -1222,5 +1223,6 @@ uint8_t RF24::txMode(uint8_t initialFreq)
   delayMicroseconds(100);
   setCeHigh();
   delayMicroseconds(102);
+  return 0;
 }
 

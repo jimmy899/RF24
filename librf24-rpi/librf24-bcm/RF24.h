@@ -633,7 +633,7 @@ public:
    */
   bool testRPD(void) ;
   int rxFlag(void);
-  int resetRxFlag(void);
+  void resetRxFlag(void);
   int txFlag(void);
   void resetTxFlag(void);
 
